@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "tpd.topic-name",
+      "type": "java.lang.String",
+      "description": "Description for tpd.topic-name."
+  }
+] }
