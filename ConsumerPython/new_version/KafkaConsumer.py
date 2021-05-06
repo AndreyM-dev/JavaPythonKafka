@@ -21,8 +21,16 @@ def consumer():
 def connectToMySQL():
     """It returns a connection object to MySQL"""
     return mysql.connector.connect(host=config["MY_SQL"]["host"], port=config["MY_SQL"]["port"],
-                                   user=config["MY_SQL"]["user"],
-                                   password=config["MY_SQL"]["pass"], database=config["MY_SQL"]["db"])
+                                   user=config["MY_SQL"]["user"], password=config["MY_SQL"]["pass"],
+                                   database=config["MY_SQL"]["db"])
+
+
+def get_list_of_existed_tables(connect):
+    with connect:
+        cursor = connect.cursor()
+        cursor.execute("SHOW TABLES")
+        tables = cursor.fetchall()
+        return list(map(lambda tbl: tbl[0], tables))
 
 
 def consumer_lister(consumer):
@@ -30,7 +38,7 @@ def consumer_lister(consumer):
     for message in consumer:
         log.info("A message was received")
         messages = message_handler(message)
-        pushMessage(connectToMySQL(), messages, TABLE_NAME)
+        push_message_to_db(connectToMySQL(), messages, TABLE_NAME)
 
 
 def message_handler(consumer_record):
@@ -44,30 +52,35 @@ def message_handler(consumer_record):
     return messagesChk(kafka_message_value)
 
 
-def pushMessage(connect, messages, table_name):
+def create_table(connect, table_name):
+    cursor = connect.cursor()
+    cursor.execute(f"CREATE TABLE {table_name} (id BIGINT, message VARCHAR(255))")
+    log.info(f"The table {table_name} was created")
+
+
+def push_message_to_db(connect, messages, table_name):
     """The function writes messages into the table of MySQL DB"""
     with connect:
         cursor = connect.cursor()
-        try:
-            cursor.execute(f"CREATE TABLE {table_name} (id BIGINT, message VARCHAR(255))")
-            log.info(f"The table {table_name} was created")
-        except mysql.connector.errors.ProgrammingError:
-            log.exception(f"Table {table_name} already exists")
+        if not (table_name in tables_list):
+            create_table(connect, table_name)
         try:
             for message in messages:
                 sql = f"INSERT INTO {table_name} (id, message) VALUES (%s, %s)"
                 val = (message["id"], message["message"])
                 cursor.execute(sql, val)
-                log.info(cursor.rowcount + " was/were inserted")
+                log.info(f"{cursor.rowcount} recorde/s was/were inserted to {table_name}")
             connect.commit()
-        except:
+        except Exception:
             log.exception("Something went wrong")
 
 
 TABLE_NAME = "messages"
+
 logging.basicConfig(filename="simpleLog.log", level=logging.INFO)
 log = logging.getLogger("MyLogger")
+
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(__file__), '../resources/config.ini'))
-
+tables_list = get_list_of_existed_tables(connectToMySQL())
 consumer_lister(consumer())
