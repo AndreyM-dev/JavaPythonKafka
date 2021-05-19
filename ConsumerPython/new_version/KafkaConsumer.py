@@ -5,12 +5,12 @@ import os
 
 import mysql.connector
 import mysql.connector.errors
-from kafka import KafkaConsumer
+import kafka as kf
 
 
 def consumer():
     """It returns a consumer of Kafka object"""
-    return KafkaConsumer(
+    return kf.KafkaConsumer(
         config["KAFKA_CONSUMER"]["TopicName"],
         bootstrap_servers=[config["KAFKA_CONNECTION"]["BootstrapServer"]],
         value_deserializer=lambda m: json.loads(m.decode('utf_8')),
@@ -75,12 +75,20 @@ def push_message_to_db(connect, messages, table_name):
             log.exception("Something went wrong")
 
 
-TABLE_NAME = "messages"
+def main():
+    global TABLE_NAME
+    global log
+    global tables_list, config
+    TABLE_NAME = "messages"
 
-logging.basicConfig(filename="simpleLog.log", level=logging.INFO)
-log = logging.getLogger("MyLogger")
+    logging.basicConfig(filename="simpleLog.log", level=logging.INFO)
+    log = logging.getLogger("MyLogger")
 
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(__file__), '../resources/config.ini'))
-tables_list = get_list_of_existed_tables(connectToMySQL())
-consumer_lister(consumer())
+    config = configparser.ConfigParser()
+    config.read(os.path.join(os.path.dirname(__file__), '../resources/config.ini'))
+    tables_list = get_list_of_existed_tables(connectToMySQL())
+    consumer_lister(consumer())
+
+
+if __name__ == '__main__':
+    main()

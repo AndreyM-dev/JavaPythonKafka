@@ -1,0 +1,5 @@
+appName: 'KafkaExercises'
+
+kafka:
+  bootstrapServer: localhost:19092
+  topic: 'kafka_test_topic'

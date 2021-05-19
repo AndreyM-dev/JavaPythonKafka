@@ -2,6 +2,6 @@ spring:
   kafka:
     producer:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-    bootstrap-servers: 10.152.183.120:9092
+    bootstrap-servers: localhost:9092
 tpd:
   topic-name: message
